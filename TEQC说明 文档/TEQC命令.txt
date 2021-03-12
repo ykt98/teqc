@@ -1,0 +1,71 @@
+1. RINEX文件改变采样率：teqc -O.dec 30s filename1 > filename2 表示从filename1(Rinex格式)中按30秒等间隔提取观测值，并将结果保存为filename2.
+
+2. RINEX文件的切割：利用时间窗进行RINEX文件任意切割。
+
+2.1 [start]+d[Y,M,d,h,m,s]指定以RINEX文件开始观测时间为上限的时间间隔+d[Y,M,d,h,s]。
+例如：提取观测文件60.06o自观测历元起前30min的观测数据并保存为60_s30min.06o,可运行命令：
+	teqc +dm 30 60.06o > 60_s30min.06o
+例如：提取观测文件60.06o自观测历元起前1h的观测数据并保存为60_s1h.06o,可运行命令：
+	teqc +dh 1 60.06o > 60_s30min.06o
+例如：提取观测文件60.06o自观测结束前30min的观测数据并保存为60_e30min.06o,可运行命令：
+	teqc -dm 30 60.06o > 60_e30min.06o
+例如：提取观测文件60.06o自观测结束前1h的观测数据并保存为60_e1h.06o,可运行命令：
+	teqc -dh 1 60.06o > 60_e30min.06o
+2.2 -st[YY MM dd hh mm ss[.sss...]] -e[YY MM dd hh mm ss[.sss...]] 使用-st配置选项规定时间窗口为从...至...
+例如：提取观测文件test08.o文件从5点开始后3个小时(5:00-8:00)的观测数据，并保存为text1.o,可运行命令：
+	teqc -st 05:00:00 +dh 3 test08.o >text1.o
+例如：提取从08年1月1日3点至6点的观测数据，可运行命令(注意空格不能多!)：
+	teqc -st 08:01:01:03:00:00 -e 08:01:01:06:00:00 test08.o >text2.o
+
+3. RINEX文件的合并，运行:>teqc file1 file2…>my_file ,即可把file1 file2…合并为一个my_file RINEX文件。
+注意file1 file2…等RINEX文件必须是时间上连续的,同时在相邻文件的合并处会有注释行:RINEX FILE SPLICECOMMENT。
+例如：algo0010.08o和algo0020.08o分别是连续两天ALGO站的观测数据，将二者合并得到文件algo[12].08o,命令如下：
+	teqc algo0010.08o algo0020.08o >algo[12].08o
+
+(注意：这个拼接的命令仅仅发生在拼接的RINEX OBS文件中，因此在RINEX NAV和RINEX MET文件的头文件后，RINEX标准不承认这个注释。)
+4. 不同接收机观测文件格式转换(Translation)
+例如，假定从天宝SSE接收机下载fbar.bin文件中含有的RT17格式的数据为GPS周866，1996年8月11日到1996年8月17日。那么，执行
+teqc -tr s -week 866 +nav fbar2240.96n fbar.bin > fbar2240.96o 
+
+5. 卫星系统的选择和特定卫星的禁用。对于GPS/GLONASS双星接收机,可以使用TEQC进行卫星的选用,
+例如：去掉GLONASS卫星数据的指令是:>teqc -R输入文件>输出文件
+	teqc -G lhaz1230.12o > R\lhaz1230R.12o
+        teqc -E ulab1230R.12o > ulab1230RR.12o
+例如：禁用prn#的GPS卫星的观测数据指令是:>teqc -G#输入文件>输出文件。
+	teqc -G6 test.08o >test.#6.08o
+
+6. 设置卫星高度角。在进行对流层和电离层延迟分析时,需要考虑低高度角卫星.
+例如：用如下指令设置卫星高度角限值为5°:
+	teqc -set_mask 5输入文件>输出文件 
+
+7. 选择观测值类型。
+例如：从test.08o文件中提取单频观测值L1(不区分大小写)，可运行以下命令：
+	teqc -O.obs L1 test.08o >test.L1.08o
+例如：要提取L1,L2,P1,P2(不区分大小写,+可省略),可运行以下命令：
+
+	teqc -O.obs L1+L2+P1+P2 ulab1230R.12o >ulab1230R1.12o
+
+8. 质量检核(Quality Checking)
+根据是否利用导航文件信息,TEQC分为qc-lite和qc-full两种检核方式。
+
+8.1 qc-lite (无导航文件)
+例如：运行teqc + qc unb12600.03o
+TEQC则对文件unb12600.03o在qc-lite方式下进行质量检核。质量检核的结果会生成报告文件unb12600.03S和数据文件unb12600.ion(L1载波的电离层延迟)、unb12600.iod(电离层延迟的变化率)、unb12600.mp1(L1载波C/A码或P码伪距的多路径影响)、unb12600.mp2(L2载波P码伪距的多路径影响)、unb12600. sn1 (L1载波的信噪比)、unb12600.sn2(L2载波的信噪比)。
+
+8.2 qc-full (输入导航文件或同一目录下有对应的N文件)
+同时输入RINEX观测数据文件和导航数据文件,
+
+
+即运行>teqc +qc -nav unb12600.03n unb12600.03o；
+
+
+或者导航数据文件和观测数据文件在同一目录下，TEQC会自动搜索导航数据文件,而无需用-nav指定,即运行>teqc +qc unb12600.03o,此时TEQC则对文件unb12600.03o在qc-full方式下进行质量检核。检核的结果除qc-lite方式下的报告文件和数据文件外,还增添了卫星和接收机天线的位置信息以及两个数据文件unb12600.azi(方位角),unb12600.ele(高度角)。
+
+
+9. 利用TEQC进行单点定位计算
+计算unb12600.03o各历元伪距单点定位结果(x,y,z)的指令是:>teqc +qc +eepx unb12600.03o > unb12600.xyz.将此结果与自编程序进行比较。
+
+
+
+
+
